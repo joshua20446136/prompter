@@ -3,12 +3,12 @@
 #include <string>
 #include <algorithm>
 #include <process.h>
+#include <stdint.h>
 #include "vosk_api.h"
 
 #pragma comment(lib, "user32.lib")
 #pragma comment(lib, "gdi32.lib")
 #pragma comment(lib, "winmm.lib")
-
 #pragma comment(lib, "libvosk.lib")
 
 using namespace std;
@@ -75,7 +75,8 @@ void __cdecl VoiceThread(void*) {
         waveInAddBuffer(hwi, &wh, sizeof(WAVEHDR));
         Sleep(100);
 
-        vosk_recognizer_accept_waveform(rec, (int16_t*)buf, sizeof(buf)/2);
+        // 修复 1：类型强转 char*
+        vosk_recognizer_accept_waveform(rec, (const char*)buf, sizeof(buf));
         string res = vosk_recognizer_result(rec);
         size_t p = res.find("\"text\":\"");
         if (p != string::npos) {
@@ -95,8 +96,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
         case WM_CREATE:
             hText = CreateWindowA("EDIT","",ES_MULTILINE|ES_READONLY|WS_CHILD|WS_VISIBLE,
                                  20,20,900,600,hWnd,(HMENU)ID_TEXT,0,0);
-            hFont = CreateFont(32,0,0,0,FW_NORMAL,0,0,0,GB2312_CHARSET,
-                               OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,DEFAULT_PITCH,L"微软雅黑");
+            // 修复 2：使用 ANSI 字体名
+            hFont = CreateFontA(32,0,0,0,FW_NORMAL,0,0,0,GB2312_CHARSET,
+                               OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,DEFAULT_PITCH,"微软雅黑");
             SendMessage(hText, WM_SETFONT, (WPARAM)hFont, 1);
             UpdateUI();
 
@@ -123,7 +125,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int nShow) {
     wc.hInstance = hInst;
     wc.lpszClassName = "SPEECH";
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
-    RegisterClass(&wc);
+    RegisterClassA(&wc);
 
     HWND hWnd = CreateWindowExA(0,"SPEECH","演讲提词器GUI",
                                 WS_OVERLAPPEDWINDOW,100,100,960,700,0,0,hInst,0);
