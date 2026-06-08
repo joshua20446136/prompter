@@ -13,7 +13,7 @@
 
 using namespace std;
 
-// 【不乱码核心】中文统一使用 UTF-8 字符串
+// 硬编码 GBK 中文，永不乱码
 vector<string> script = {
     "尊敬的各位领导、各位来宾，大家好。",
     "今天非常荣幸能够站在这里进行演讲。",
@@ -97,14 +97,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
             hText = CreateWindowA("EDIT", "", ES_MULTILINE | ES_READONLY | WS_CHILD | WS_VISIBLE,
                 20, 20, 900, 600, hWnd, (HMENU)ID_TEXT, 0, 0);
 
-            // 【不乱码】使用宋体 / 微软雅黑，兼容中文
-            hFont = CreateFontA(32, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+            hFont = CreateFontA(32, 0, 0, 0, FW_NORMAL, 0, 0, 0,
                 GB2312_CHARSET,
                 OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
                 DEFAULT_QUALITY,
                 DEFAULT_PITCH, "SimHei");
 
-            SendMessage(hText, WM_SETFONT, (WPARAM)hFont, TRUE);
+            SendMessage(hText, WM_SETFONT, (WPARAM)hFont, 1);
             UpdateUI();
 
             model = vosk_model_new("model");
@@ -133,7 +132,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int nShow) {
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     RegisterClassA(&wc);
 
-    HWND hWnd = CreateWindowExA(0, "SPEECH", "演讲提词器",
+    HWND hWnd = CreateWindowExA(0, "SPEECH", "Speech",
         WS_OVERLAPPEDWINDOW, 100, 100, 960, 700, NULL, NULL, hInst, 0);
 
     ShowWindow(hWnd, nShow);
