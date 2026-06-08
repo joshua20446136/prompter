@@ -28,9 +28,9 @@ jobs:
           copy vosk-win64-0.3.45\libwinpthread-1.dll .
           copy vosk-win64-0.3.45\libgcc_s_seh-1.dll .
 
-      - name: 编译EXE
+      - name: 编译EXE（UTF-8 避免乱码）
         run: |
-          cl /EHsc script.cpp user32.lib gdi32.lib winmm.lib libvosk.lib
+          cl /EHsc /utf-8 script.cpp user32.lib gdi32.lib winmm.lib libvosk.lib
 
       - name: 打包发布文件
         run: |
