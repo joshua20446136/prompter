@@ -9,6 +9,8 @@
 #pragma comment(lib, "gdi32.lib")
 #pragma comment(lib, "winmm.lib")
 
+#pragma comment(lib, "libvosk.lib")
+
 using namespace std;
 
 vector<string> script = {
