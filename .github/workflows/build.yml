@@ -9,8 +9,7 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - name: 拉取代码
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: 配置MSVC编译环境
         uses: ilammy/msvc-dev-cmd@v1
@@ -19,19 +18,28 @@ jobs:
         run: |
           curl -L https://github.com/alphacep/vosk-api/releases/download/v0.3.45/vosk-win64-0.3.45.zip -o vosk.zip
           unzip vosk.zip
-          copy vosk-win64-0.3.45\vosk.lib .
+
+      - name: 复制依赖文件
+        run: |
+          copy vosk-win64-0.3.45\libvosk.lib .
           copy vosk-win64-0.3.45\libvosk.dll .
           copy vosk-win64-0.3.45\vosk_api.h .
+          copy vosk-win64-0.3.45\libstdc++-6.dll .
+          copy vosk-win64-0.3.45\libwinpthread-1.dll .
+          copy vosk-win64-0.3.45\libgcc_s_seh-1.dll .
 
       - name: 编译EXE
         run: |
-          cl /EHsc script.cpp user32.lib gdi32.lib winmm.lib vosk.lib
+          cl /EHsc script.cpp user32.lib gdi32.lib winmm.lib libvosk.lib
 
-      - name: 打包成品
+      - name: 打包发布文件
         run: |
           mkdir release
           copy script.exe release
           copy libvosk.dll release
+          copy libstdc++-6.dll release
+          copy libwinpthread-1.dll release
+          copy libgcc_s_seh-1.dll release
 
       - name: 上传编译产物
         uses: actions/upload-artifact@v4
