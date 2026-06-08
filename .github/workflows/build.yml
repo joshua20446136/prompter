@@ -1,0 +1,40 @@
+name: 编译演讲提词器GUI
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 配置MSVC编译环境
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: 下载Vosk库
+        run: |
+          curl -L https://github.com/alphacep/vosk-api/releases/download/v0.3.45/vosk-win64-0.3.45.zip -o vosk.zip
+          unzip vosk.zip
+          copy vosk-win64-0.3.45\vosk.lib .
+          copy vosk-win64-0.3.45\libvosk.dll .
+          copy vosk-win64-0.3.45\vosk_api.h .
+
+      - name: 编译EXE
+        run: |
+          cl /EHsc script.cpp user32.lib gdi32.lib winmm.lib vosk.lib
+
+      - name: 打包成品
+        run: |
+          mkdir release
+          copy script.exe release
+          copy libvosk.dll release
+
+      - name: 上传编译产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: speech-prompter-gui
+          path: release/
