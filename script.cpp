@@ -13,6 +13,7 @@
 
 using namespace std;
 
+// 【不乱码核心】中文统一使用 UTF-8 字符串
 vector<string> script = {
     "尊敬的各位领导、各位来宾，大家好。",
     "今天非常荣幸能够站在这里进行演讲。",
@@ -48,7 +49,7 @@ int findBestMatch(const string& text) {
 void UpdateUI() {
     string buf;
     for (int i=0;i<script.size();i++) {
-        if (i==currentLine) buf += "👉 " + script[i] + "\r\n\r\n";
+        if (i==currentLine) buf += "-> " + script[i] + "\r\n\r\n";
         else buf += "   " + script[i] + "\r\n\r\n";
     }
     SetWindowTextA(hText, buf.c_str());
@@ -75,7 +76,6 @@ void __cdecl VoiceThread(void*) {
         waveInAddBuffer(hwi, &wh, sizeof(WAVEHDR));
         Sleep(100);
 
-        // 修复 1：类型强转 char*
         vosk_recognizer_accept_waveform(rec, (const char*)buf, sizeof(buf));
         string res = vosk_recognizer_result(rec);
         size_t p = res.find("\"text\":\"");
@@ -94,12 +94,17 @@ void __cdecl VoiceThread(void*) {
 LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
     switch(msg) {
         case WM_CREATE:
-            hText = CreateWindowA("EDIT","",ES_MULTILINE|ES_READONLY|WS_CHILD|WS_VISIBLE,
-                                 20,20,900,600,hWnd,(HMENU)ID_TEXT,0,0);
-            // 修复 2：使用 ANSI 字体名
-            hFont = CreateFontA(32,0,0,0,FW_NORMAL,0,0,0,GB2312_CHARSET,
-                               OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,DEFAULT_PITCH,"微软雅黑");
-            SendMessage(hText, WM_SETFONT, (WPARAM)hFont, 1);
+            hText = CreateWindowA("EDIT", "", ES_MULTILINE | ES_READONLY | WS_CHILD | WS_VISIBLE,
+                20, 20, 900, 600, hWnd, (HMENU)ID_TEXT, 0, 0);
+
+            // 【不乱码】使用宋体 / 微软雅黑，兼容中文
+            hFont = CreateFontA(32, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+                GB2312_CHARSET,
+                OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+                DEFAULT_QUALITY,
+                DEFAULT_PITCH, "SimHei");
+
+            SendMessage(hText, WM_SETFONT, (WPARAM)hFont, TRUE);
             UpdateUI();
 
             model = vosk_model_new("model");
@@ -114,25 +119,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
             PostQuitMessage(0);
             break;
 
-        default: return DefWindowProc(hWnd,msg,wp,lp);
+        default:
+            return DefWindowProcA(hWnd, msg, wp, lp);
     }
     return 0;
 }
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int nShow) {
-    WNDCLASS wc{};
+    WNDCLASSA wc{};
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInst;
     wc.lpszClassName = "SPEECH";
-    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
+    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     RegisterClassA(&wc);
 
-    HWND hWnd = CreateWindowExA(0,"SPEECH","演讲提词器GUI",
-                                WS_OVERLAPPEDWINDOW,100,100,960,700,0,0,hInst,0);
-    ShowWindow(hWnd,nShow);
+    HWND hWnd = CreateWindowExA(0, "SPEECH", "演讲提词器",
+        WS_OVERLAPPEDWINDOW, 100, 100, 960, 700, NULL, NULL, hInst, 0);
+
+    ShowWindow(hWnd, nShow);
     UpdateWindow(hWnd);
 
     MSG msg;
-    while(GetMessage(&msg,0,0,0)){TranslateMessage(&msg);DispatchMessage(&msg);}
+    while (GetMessageA(&msg, NULL, 0, 0)) {
+        TranslateMessage(&msg);
+        DispatchMessageA(&msg);
+    }
     return 0;
 }
