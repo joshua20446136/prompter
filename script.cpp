@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <process.h>
 #include <stdint.h>
+#include <fstream>
 #include "vosk_api.h"
 
 #pragma comment(lib, "user32.lib")
@@ -13,23 +14,20 @@
 
 using namespace std;
 
-// 硬编码 GBK 中文，永不乱码
-vector<string> script = {
-    "尊敬的各位领导、各位来宾，大家好。",
-    "今天非常荣幸能够站在这里进行演讲。",
-    "我今天演讲的主题是科技创新与未来发展。",
-    "科技是第一生产力，创新是引领发展的动力。",
-    "面对新时代，我们必须坚持自主创新。",
-    "让我们携手共进，创造更加美好的明天。",
-    "我的演讲完毕，谢谢大家。"
-};
-
-#define ID_TEXT 1001
+vector<string> script;
 HWND hText;
 HFONT hFont;
 int currentLine = -1;
 VoskModel* model;
 VoskRecognizer* rec;
+
+void LoadScript() {
+    ifstream f("script.txt");
+    string line;
+    while (getline(f, line)) {
+        if (!line.empty()) script.push_back(line);
+    }
+}
 
 int matchScore(const string& a, const string& b) {
     int s = 0;
@@ -94,16 +92,17 @@ void __cdecl VoiceThread(void*) {
 LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
     switch(msg) {
         case WM_CREATE:
-            hText = CreateWindowA("EDIT", "", ES_MULTILINE | ES_READONLY | WS_CHILD | WS_VISIBLE,
-                20, 20, 900, 600, hWnd, (HMENU)ID_TEXT, 0, 0);
-
-            hFont = CreateFontA(32, 0, 0, 0, FW_NORMAL, 0, 0, 0,
-                GB2312_CHARSET,
-                OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-                DEFAULT_QUALITY,
-                DEFAULT_PITCH, "SimHei");
-
+            hText = CreateWindowA("EDIT","",ES_MULTILINE|ES_READONLY|WS_CHILD|WS_VISIBLE,
+                                 20,20,900,600,hWnd,(HMENU)1001,0,0);
+            
+            hFont = CreateFontA(32,0,0,0,FW_NORMAL,0,0,0,
+                                GB2312_CHARSET,
+                                OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,
+                                DEFAULT_QUALITY,
+                                DEFAULT_PITCH,"SimHei");
+            
             SendMessage(hText, WM_SETFONT, (WPARAM)hFont, 1);
+            LoadScript();
             UpdateUI();
 
             model = vosk_model_new("model");
@@ -113,13 +112,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
 
         case WM_DESTROY:
             DeleteObject(hFont);
-            vosk_recognizer_free(rec);
-            vosk_model_free(model);
             PostQuitMessage(0);
             break;
 
-        default:
-            return DefWindowProcA(hWnd, msg, wp, lp);
+        default: return DefWindowProcA(hWnd,msg,wp,lp);
     }
     return 0;
 }
@@ -129,17 +125,15 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int nShow) {
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInst;
     wc.lpszClassName = "SPEECH";
-    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     RegisterClassA(&wc);
 
-    HWND hWnd = CreateWindowExA(0, "SPEECH", "Speech",
-        WS_OVERLAPPEDWINDOW, 100, 100, 960, 700, NULL, NULL, hInst, 0);
-
-    ShowWindow(hWnd, nShow);
+    HWND hWnd = CreateWindowExA(0,"SPEECH","Speech Prompter",
+                                WS_OVERLAPPEDWINDOW,100,100,960,700,0,0,hInst,0);
+    ShowWindow(hWnd,nShow);
     UpdateWindow(hWnd);
 
     MSG msg;
-    while (GetMessageA(&msg, NULL, 0, 0)) {
+    while(GetMessageA(&msg,0,0,0)){
         TranslateMessage(&msg);
         DispatchMessageA(&msg);
     }
